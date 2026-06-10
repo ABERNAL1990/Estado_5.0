@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>El Estado 5.0 — IA con Rostro Humano | Ab. Belén Sarmiento</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+/* ════════════════════════════════════════════════════════════
+   EL ESTADO 5.0 — Scrolltelling Cyberpunk
+   Paleta de señal: cian (#22d3ee) + ámbar (#f59e0b)
+   ════════════════════════════════════════════════════════════ */
+:root{
+  --void:#04060b;
+  --panel:rgba(8,13,24,.82);
+  --panel-hard:#0a1220;
+  --line:rgba(34,211,238,.25);
+  --line-amber:rgba(245,158,11,.35);
+  --cyan:#22d3ee;
+  --cyan-soft:rgba(34,211,238,.12);
+  --amber:#f59e0b;
+  --amber-soft:rgba(245,158,11,.10);
+  --magenta:#e879f9;
+  --text:#e8eef7;
+  --text-dim:#8aa0bf;
+  --mono:'Share Tech Mono',monospace;
+  --mono-2:'IBM Plex Mono',monospace;
+  --sans:'Rajdhani',sans-serif;
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--void);
+  color:var(--text);
+  font-family:var(--sans);
+  overflow-x:hidden;
+}
+
+/* ── Fondo de video fijo ───────────────────────────────────── */
+#bg-video{
+  position:fixed;inset:0;
+  width:100vw;height:100vh;
+  object-fit:cover;
+  z-index:-2;
+  filter:saturate(.85) brightness(.55);
+}
+#bg-veil{
+  position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:
+    linear-gradient(180deg,rgba(4,6,11,.65) 0%,rgba(4,6,11,.35) 40%,rgba(4,6,11,.78) 100%),
+    radial-gradient(ellipse at 70% 20%,rgba(34,211,238,.08),transparent 55%);
+}
+/* scanlines */
+#bg-veil::after{
+  content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(0deg,transparent 0 3px,rgba(0,0,0,.14) 3px 4px);
+  mix-blend-mode:multiply;
+}
+
+/* ── HUD fijo ──────────────────────────────────────────────── */
+.hud{
+  position:fixed;z-index:50;font-family:var(--mono);
+  font-size:.7rem;letter-spacing:.18em;color:var(--cyan);
+  text-transform:uppercase;opacity:.8;pointer-events:none;
+}
+.hud-tl{top:1.1rem;left:1.4rem}
+.hud-tr{top:1.1rem;right:1.4rem;color:var(--amber)}
+.hud-progress{
+  position:fixed;top:0;left:0;height:2px;width:0;
+  background:linear-gradient(90deg,var(--cyan),var(--amber));
+  z-index:60;box-shadow:0 0 12px var(--cyan);
+  transition:width .1s linear;
+}
+
+/* ── Secciones de narrativa ────────────────────────────────── */
+#narrative{position:relative;z-index:1}
+section.story{
+  min-height:100vh;
+  display:flex;align-items:center;justify-content:center;
+  padding:14vh 6vw;
+}
+.frame{
+  max-width:880px;width:100%;
+  background:var(--panel);
+  backdrop-filter:blur(8px);
+  border:1px solid var(--line);
+  border-radius:4px;
+  padding:3rem clamp(1.5rem,4vw,3.5rem);
+  position:relative;
+  opacity:0;transform:translateY(48px);
+  transition:opacity .9s cubic-bezier(.22,.8,.3,1),transform .9s cubic-bezier(.22,.8,.3,1);
+  box-shadow:0 0 0 1px rgba(0,0,0,.4),0 30px 80px rgba(0,0,0,.55);
+}
+section.story.visible .frame{opacity:1;transform:translateY(0)}
+
+/* esquinas de mira (corner brackets) */
+.frame::before,.frame::after,
+.frame .ck::before,.frame .ck::after{
+  content:'';position:absolute;width:18px;height:18px;
+  border-color:var(--cyan);border-style:solid;
+}
+.frame::before{top:-1px;left:-1px;border-width:2px 0 0 2px}
+.frame::after{top:-1px;right:-1px;border-width:2px 2px 0 0}
+.frame .ck::before{bottom:-1px;left:-1px;border-width:0 0 2px 2px}
+.frame .ck::after{bottom:-1px;right:-1px;border-width:0 2px 2px 0}
+.frame.amber{border-color:var(--line-amber)}
+.frame.amber::before,.frame.amber::after,
+.frame.amber .ck::before,.frame.amber .ck::after{border-color:var(--amber)}
+
+.eyebrow{
+  font-family:var(--mono);font-size:.72rem;letter-spacing:.3em;
+  text-transform:uppercase;color:var(--amber);margin-bottom:1.2rem;
+  display:flex;align-items:center;gap:.7rem;
+}
+.eyebrow::before{content:'';width:34px;height:1px;background:var(--amber)}
+.eyebrow .idx{color:var(--text-dim)}
+
+h1,h2{font-family:var(--sans);font-weight:700;line-height:1.08;letter-spacing:.01em}
+h1{font-size:clamp(2.6rem,7vw,4.6rem);text-transform:uppercase}
+h2{font-size:clamp(1.8rem,4.5vw,2.8rem);text-transform:uppercase;margin-bottom:1.2rem}
+.glow-cyan{color:var(--cyan);text-shadow:0 0 24px rgba(34,211,238,.55)}
+.glow-amber{color:var(--amber);text-shadow:0 0 24px rgba(245,158,11,.5)}
+
+p.lead{font-size:1.15rem;color:var(--text-dim);line-height:1.65;font-weight:500}
+p.lead strong{color:var(--text)}
+
+.terminal{
+  font-family:var(--mono-2);font-size:.92rem;line-height:1.7;
+  background:rgba(0,0,0,.45);border-left:2px solid var(--cyan);
+  padding:1rem 1.3rem;margin-top:1.6rem;color:var(--text-dim);
+}
+.terminal .prompt{color:var(--cyan)}
+.terminal .ok{color:var(--amber)}
+.cursor{display:inline-block;width:.55em;height:1em;background:var(--cyan);
+  vertical-align:-2px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* presentadora */
+.speaker{
+  margin-top:2.2rem;padding-top:1.4rem;border-top:1px dashed var(--line);
+  font-family:var(--mono-2);font-size:.9rem;color:var(--text-dim);
+}
+.speaker b{color:var(--cyan);font-weight:600;display:block;font-size:1rem;letter-spacing:.06em}
+
+/* sección 2: la gran pregunta */
+.big-q{
+  font-size:clamp(1.7rem,4.6vw,2.9rem);font-weight:700;line-height:1.18;
+  text-transform:uppercase;color:var(--magenta);
+  text-shadow:0 0 30px rgba(232,121,249,.4);margin:1.2rem 0;
+}
+
+/* sección 3: timeline de revoluciones */
+.rev-track{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:1.8rem}
+.rev{
+  flex:1 1 140px;border:1px solid var(--line);padding:1rem .9rem;
+  background:rgba(0,0,0,.35);position:relative;
+  font-family:var(--mono-2);
+  clip-path:polygon(0 0,calc(100% - 14px) 0,100% 50%,calc(100% - 14px) 100%,0 100%,8px 50%);
+  opacity:0;transform:translateX(-18px);transition:all .6s ease;
+}
+section.visible .rev{opacity:1;transform:none}
+section.visible .rev:nth-child(1){transition-delay:.15s}
+section.visible .rev:nth-child(2){transition-delay:.3s}
+section.visible .rev:nth-child(3){transition-delay:.45s}
+section.visible .rev:nth-child(4){transition-delay:.6s}
+section.visible .rev:nth-child(5){transition-delay:.75s}
+.rev .n{font-size:1.5rem;color:var(--cyan);display:block}
+.rev .t{font-size:.78rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em}
+.rev.hot{border-color:var(--amber);background:var(--amber-soft)}
+.rev.hot .n{color:var(--amber);text-shadow:0 0 14px rgba(245,158,11,.7)}
+.rev.hot .t{color:var(--text)}
+
+/* sección 4: doble brecha */
+.split{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-top:1.8rem}
+@media(max-width:680px){.split{grid-template-columns:1fr}}
+.gap-card{border:1px solid var(--line);background:rgba(0,0,0,.4);padding:1.3rem}
+.gap-card.amber{border-color:var(--line-amber)}
+.gap-card h3{
+  font-family:var(--mono);font-size:.85rem;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--cyan);margin-bottom:.9rem;
+}
+.gap-card.amber h3{color:var(--amber)}
+.gap-card ul{list-style:none}
+.gap-card li{
+  font-size:.98rem;color:var(--text-dim);padding:.4rem 0 .4rem 1.3rem;position:relative;
+  border-bottom:1px solid rgba(255,255,255,.05);
+}
+.gap-card li::before{content:'▸';position:absolute;left:0;color:var(--cyan)}
+.gap-card.amber li::before{color:var(--amber)}
+.warn-strip{
+  margin-top:1.4rem;border:1px solid var(--line-amber);background:var(--amber-soft);
+  padding:1rem 1.2rem;font-family:var(--mono-2);font-size:.92rem;color:var(--text);
+}
+.warn-strip b{color:var(--amber)}
+
+/* sección 5: pilares */
+.pillars{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:1.8rem}
+@media(max-width:760px){.pillars{grid-template-columns:1fr}}
+.pillar{
+  border:1px solid var(--line);background:rgba(0,0,0,.4);padding:1.4rem 1.1rem;
+  position:relative;transition:border-color .3s,box-shadow .3s;
+}
+.pillar:hover{border-color:var(--cyan);box-shadow:0 0 24px var(--cyan-soft)}
+.pillar .tag{
+  font-family:var(--mono);font-size:.65rem;letter-spacing:.25em;color:var(--amber);
+  text-transform:uppercase;display:block;margin-bottom:.7rem;
+}
+.pillar h3{font-size:1.25rem;text-transform:uppercase;color:var(--cyan);line-height:1.2;margin-bottom:.6rem}
+.pillar p{font-size:.92rem;color:var(--text-dim);line-height:1.55}
+.quote{
+  margin-top:1.6rem;text-align:center;font-family:var(--mono-2);
+  font-size:1.02rem;color:var(--magenta);
+}
+
+/* sección 6: CTA */
+.actions{display:flex;flex-direction:column;gap:.8rem;margin:1.8rem 0}
+.action-row{
+  display:flex;align-items:baseline;gap:1rem;border:1px solid var(--line);
+  background:rgba(0,0,0,.35);padding:.95rem 1.2rem;
+}
+.action-row b{
+  font-family:var(--mono);color:var(--cyan);font-size:1.05rem;
+  text-transform:uppercase;letter-spacing:.12em;min-width:8ch;
+}
+.action-row span{color:var(--text-dim);font-size:.98rem}
+
+.cta-dash{
+  display:inline-flex;align-items:center;gap:.8rem;margin-top:1.2rem;
+  font-family:var(--mono);font-size:1rem;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--void);background:var(--amber);border:none;cursor:pointer;
+  padding:1.1rem 2.2rem;
+  clip-path:polygon(0 0,calc(100% - 18px) 0,100% 100%,18px 100%);
+  box-shadow:0 0 30px rgba(245,158,11,.45);
+  transition:transform .2s,box-shadow .2s,background .2s;
+}
+.cta-dash:hover{transform:translateY(-2px);box-shadow:0 0 46px rgba(245,158,11,.7);background:#ffb423}
+.cta-dash:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+.cta-hint{font-family:var(--mono-2);font-size:.78rem;color:var(--text-dim);margin-top:.8rem}
+
+/* indicador de scroll */
+.scroll-cue{
+  position:absolute;bottom:2.2rem;left:50%;transform:translateX(-50%);
+  font-family:var(--mono);font-size:.68rem;letter-spacing:.3em;color:var(--cyan);
+  text-transform:uppercase;animation:cue 2.2s ease-in-out infinite;opacity:.85;
+}
+@keyframes cue{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,10px)}}
+
+/* ── Vista Dashboard ───────────────────────────────────────── */
+#dashboard-view{
+  display:none;position:fixed;inset:0;z-index:100;background:var(--void);
+}
+#dashboard-view.active{display:block}
+#dashboard-view iframe{width:100%;height:100%;border:0;display:block}
+#btn-return{
+  position:fixed;top:.9rem;right:.9rem;z-index:110;
+  font-family:var(--mono);font-size:.75rem;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--cyan);background:rgba(4,6,11,.9);border:1px solid var(--cyan);
+  padding:.6rem 1.1rem;cursor:pointer;
+  box-shadow:0 0 18px rgba(34,211,238,.35);
+  transition:background .2s,color .2s;
+}
+#btn-return:hover{background:var(--cyan);color:var(--void)}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+  section.story .frame{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+
+<!-- FONDO DE VIDEO (mantener el .mp4 en la misma carpeta) -->
+<video id="bg-video" autoplay muted loop playsinline
+       src="Un_primer_plano_cinematográfic.mp4"></video>
+<div id="bg-veil"></div>
+
+<div class="hud-progress" id="progress"></div>
+<div class="hud hud-tl">ESTADO_5.0 // SESIÓN ACTIVA</div>
+<div class="hud hud-tr" id="hud-clock">--:--:--</div>
+
+<!-- ═══════════ NARRATIVA (SCROLLTELLING) ═══════════ -->
+<main id="narrative">
+
+  <!-- 01 · Título -->
+  <section class="story" id="s1">
+    <div class="frame"><span class="ck"></span>
+      <div class="eyebrow"><span class="idx">[01/06]</span> Ponencia magistral</div>
+      <h1>El Estado <span class="glow-cyan">5.0</span></h1>
+      <h2 style="color:var(--magenta);text-shadow:0 0 22px rgba(232,121,249,.4)">Inteligencia Artificial con Rostro Humano</h2>
+      <div class="terminal">
+        <span class="prompt">&gt;</span> iniciando_sistema --modo humano<br>
+        <span class="prompt">&gt;</span> cargando principios: dignidad, equidad, justicia… <span class="ok">OK</span><br>
+        <span class="prompt">&gt;</span> presentación lista<span class="cursor"></span>
+      </div>
+      <div class="speaker">
+        <b>Ab. Belén Sarmiento</b>
+        Directora de Administración en Instituciones Públicas<br>
+        Universidad Católica de Cuenca
+      </div>
+    </div>
+    <div class="scroll-cue">▼ Desplázate para iniciar</div>
+  </section>
+
+  <!-- 02 · La pregunta -->
+  <section class="story" id="s2">
+    <div class="frame"><span class="ck"></span>
+      <div class="eyebrow"><span class="idx">[02/06]</span> La pregunta que define nuestro futuro</div>
+      <p class="big-q">¿Estamos construyendo tecnología para reemplazar al ser humano… o para potenciar nuestra humanidad?</p>
+      <p class="lead">Esta pregunta no es retórica: <strong>decide qué tipo de sociedad le entregamos a la próxima generación</strong>. Es la línea que separa el verdadero progreso del simple ruido tecnológico.</p>
+    </div>
+  </section>
+
+  <!-- 03 · Quinta Revolución -->
+  <section class="story" id="s3">
+    <div class="frame"><span class="ck"></span>
+      <div class="eyebrow"><span class="idx">[03/06]</span> Evolución histórica</div>
+      <h2>La <span class="glow-cyan">Quinta</span> Revolución Industrial</h2>
+      <p class="lead">Cada revolución transformó la relación entre el ser humano y su mundo. <strong>La quinta es la más profunda de todas.</strong></p>
+      <div class="rev-track">
+        <div class="rev"><span class="n">1ª</span><span class="t">Máquina de vapor</span></div>
+        <div class="rev"><span class="n">2ª</span><span class="t">Electricidad</span></div>
+        <div class="rev"><span class="n">3ª</span><span class="t">Computadora</span></div>
+        <div class="rev"><span class="n">4ª</span><span class="t">Conectividad y datos</span></div>
+        <div class="rev hot"><span class="n">5ª</span><span class="t">Colaboración humana e IA</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 · Doble Brecha -->
+  <section class="story" id="s4">
+    <div class="frame amber"><span class="ck"></span>
+      <div class="eyebrow"><span class="idx">[04/06]</span> Diagnóstico regional</div>
+      <h2>La Doble Brecha de <span class="glow-amber">América Latina</span></h2>
+      <div class="split">
+        <div class="gap-card">
+          <h3>// Brecha de acceso</h3>
+          <ul>
+            <li>No todos tienen las mismas oportunidades</li>
+            <li>Conectividad limitada</li>
+            <li>Alfabetización digital baja</li>
+            <li>Desigualdad económica</li>
+          </ul>
+        </div>
+        <div class="gap-card amber">
+          <h3>// Brecha de gobernanza</h3>
+          <ul>
+            <li>Faltan marcos normativos protectores</li>
+            <li>Ausencia de regulación</li>
+            <li>Falta de transparencia algorítmica</li>
+            <li>Escasa rendición de cuentas</li>
+          </ul>
+        </div>
+      </div>
+      <div class="warn-strip">
+        ⚠ Sin resolver ambas brechas de forma simultánea, el futuro será <b>brillante para pocos y opaco para la mayoría</b>. El desafío no es solo adoptar IA, sino hacerlo con equidad y justicia como condiciones no negociables.
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 · Tres Pilares -->
+  <section class="story" id="s5">
+    <div class="frame"><span class="ck"></span>
+      <div class="eyebrow"><span class="idx">[05/06]</span> Arquitectura del modelo</div>
+      <h2>Tres Pilares del <span class="glow-cyan">Estado 5.0</span></h2>
+      <p class="lead">Un Estado donde la tecnología se adopta porque <strong>resuelve problemas reales</strong>, sin generar problemas nuevos.</p>
+      <div class="pillars">
+        <div class="pillar">
+          <span class="tag">Pilar_01</span>
+          <h3>Ética como Diseño</h3>
+          <p>Integrada desde la primera línea de código, no añadida al final. Cada modelo, cada dato, cada decisión automatizada debe respetar la dignidad humana.</p>
+        </div>
+        <div class="pillar">
+          <span class="tag">Pilar_02</span>
+          <h3>Normativa como Ventaja</h3>
+          <p>La regulación clara no mata la innovación: permite que escale con confianza. En la economía de la IA, la confianza es el nuevo petróleo.</p>
+        </div>
+        <div class="pillar">
+          <span class="tag">Pilar_03</span>
+          <h3>Derechos Humanos como Algoritmo</h3>
+          <p>La dignidad como parámetro principal de optimización. IA no más lenta ni menos poderosa: mejor dirigida.</p>
+        </div>
+      </div>
+      <p class="quote">"La ética no es un freno: es una brújula."</p>
+    </div>
+  </section>
+
+  <!-- 06 · Llamado a la acción + CTA -->
+  <section class="story" id="s6">
+    <div class="frame amber"><span class="ck"></span>
+      <div class="eyebrow"><span class="idx">[06/06]</span> Llamado a la acción</div>
+      <h2>Proteger · Regular · <span class="glow-amber">Liderar</span></h2>
+      <p class="lead">Si logramos que la IA sea herramienta de bienestar, con la dignidad humana como algoritmo principal, no solo habremos construido mejor tecnología: <strong>habremos construido una mejor versión de nosotros mismos.</strong></p>
+      <div class="actions">
+        <div class="action-row"><b>Proteger</b><span>Diseñar IA que respete derechos desde el origen</span></div>
+        <div class="action-row"><b>Regular</b><span>Construir marcos normativos con identidad propia</span></div>
+        <div class="action-row"><b>Liderar</b><span>Ser protagonistas del futuro, no espectadores</span></div>
+      </div>
+      <button class="cta-dash" id="btn-dashboard">▶ Ver evidencia: Dashboard Analítico</button>
+      <p class="cta-hint">// Datos reales de seguridad ciudadana — Distrito Metropolitano de Quito</p>
+    </div>
+  </section>
+
+</main>
+
+<!-- ═══════════ DASHBOARD (oculto por defecto) ═══════════ -->
+<div id="dashboard-view" aria-hidden="true">
+  <button id="btn-return">◀ Volver a la presentación</button>
+  <iframe id="dash-frame" title="Dashboard Analítico — Seguridad Ciudadana DMQ"
+          data-src="dashboard_seguridad_dmq.html"></iframe>
+</div>
+
+<script>
+/* ── Reveal progresivo de secciones ── */
+const io = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.25 });
+document.querySelectorAll('section.story').forEach(s => io.observe(s));
+
+/* ── Barra de progreso de scroll ── */
+const progress = document.getElementById('progress');
+addEventListener('scroll', () => {
+  const h = document.documentElement;
+  const pct = h.scrollTop / (h.scrollHeight - h.clientHeight) * 100;
+  progress.style.width = pct + '%';
+}, { passive: true });
+
+/* ── Reloj HUD ── */
+const clock = document.getElementById('hud-clock');
+setInterval(() => {
+  clock.textContent = new Date().toLocaleTimeString('es-EC', { hour12: false });
+}, 1000);
+
+/* ── Transición narrativa ⇄ dashboard ── */
+const narrative = document.getElementById('narrative');
+const dashView  = document.getElementById('dashboard-view');
+const dashFrame = document.getElementById('dash-frame');
+const bgVideo   = document.getElementById('bg-video');
+let scrollPos = 0;
+
+document.getElementById('btn-dashboard').addEventListener('click', () => {
+  scrollPos = window.scrollY;
+  // Carga diferida del dashboard la primera vez
+  if (!dashFrame.src) dashFrame.src = dashFrame.dataset.src;
+  narrative.style.display = 'none';
+  dashView.classList.add('active');
+  dashView.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+  bgVideo.pause(); // libera recursos mientras se analiza el dashboard
+});
+
+document.getElementById('btn-return').addEventListener('click', () => {
+  dashView.classList.remove('active');
+  dashView.setAttribute('aria-hidden', 'true');
+  narrative.style.display = '';
+  document.body.style.overflow = '';
+  bgVideo.play().catch(() => {});
+  window.scrollTo({ top: scrollPos });
+});
+</script>
+</body>
+</html>
